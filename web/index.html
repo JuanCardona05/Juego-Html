@@ -24,6 +24,22 @@
   <main class="game-shell">
     <canvas id="gameCanvas" width="1280" height="720"></canvas>
 
+    <section id="mobileControls" class="mobile-controls" aria-label="Controles táctiles">
+      <div class="mobile-controls-row mobile-controls-move">
+        <button class="mobile-btn mobile-btn-left" data-mobile-key="KeyA" aria-label="Girar a la izquierda">◀</button>
+        <button class="mobile-btn mobile-btn-right" data-mobile-key="KeyD" aria-label="Girar a la derecha">▶</button>
+      </div>
+      <div class="mobile-controls-row mobile-controls-throttle">
+        <button class="mobile-btn mobile-btn-up" data-mobile-key="KeyW" aria-label="Acelerar">▲</button>
+        <button class="mobile-btn mobile-btn-down" data-mobile-key="KeyS" aria-label="Frenar">▼</button>
+      </div>
+      <div class="mobile-controls-row mobile-controls-actions">
+        <button class="mobile-action-btn drift" data-mobile-key="Space" data-mobile-mode="hold" aria-label="Derrapar">DRIFT</button>
+        <button class="mobile-action-btn boost" data-mobile-key="ShiftLeft" data-mobile-mode="hold" aria-label="Turbo">BOOST</button>
+        <button class="mobile-action-btn item" data-mobile-key="KeyE" data-mobile-mode="tap" aria-label="Usar objeto">ITEM</button>
+      </div>
+    </section>
+
     <!-- PANTALLA DE INTRO DE VIDEO -->
     <section id="introScreen" class="overlay intro-screen-overlay">
       <video id="introVideo" class="intro-video-full" autoplay playsinline>

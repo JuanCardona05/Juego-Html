@@ -6,6 +6,7 @@ import { MenuManager } from "./MenuManager.js";
 import { AudioManager } from "./arcade/AudioManager.js";
 
 const canvas = document.getElementById("gameCanvas");
+const mobileControls = document.getElementById("mobileControls");
 const ui = new UIManager();
 const previews = new MenuPreview();
 const audioManager = new AudioManager();
@@ -14,6 +15,52 @@ const menuManager = new MenuManager(audioManager);
 let game = null;
 let introManager = null;
 let isIntroSkipped = false;
+let mobileControlBindingsReady = false;
+const mobileHeldKeys = new Set();
+
+const isTouchDevice = () => {
+  try {
+    const touchQuery = window.matchMedia?.("(pointer: coarse) and (hover: none)");
+    return !!(touchQuery?.matches || navigator.maxTouchPoints > 0);
+  } catch {
+    return navigator.maxTouchPoints > 0;
+  }
+};
+
+const refreshTouchUiMode = () => {
+  document.body.classList.toggle("touch-device", isTouchDevice());
+};
+
+const isPortrait = () => {
+  try {
+    return !!window.matchMedia?.("(orientation: portrait)")?.matches;
+  } catch {
+    return window.innerHeight >= window.innerWidth;
+  }
+};
+
+const lockLandscapeForGameplay = async () => {
+  if (!isTouchDevice()) return;
+
+  // Most mobile browsers only allow orientation lock in fullscreen after a user gesture.
+  if (isPortrait() && !document.fullscreenElement && typeof document.documentElement.requestFullscreen === "function") {
+    await document.documentElement.requestFullscreen().catch(() => {});
+  }
+
+  if (typeof screen.orientation?.lock === "function") {
+    await screen.orientation.lock("landscape").catch(() => {});
+  }
+};
+
+const unlockGameplayOrientation = () => {
+  if (typeof screen.orientation?.unlock === "function") {
+    try {
+      screen.orientation.unlock();
+    } catch {
+      // Ignore unsupported unlock calls.
+    }
+  }
+};
 
 const SETTINGS_KEY = "animalKartSettings";
 const defaultSettings = {
@@ -63,6 +110,84 @@ const applyMenuVolume = () => {
   if (audioManager.master) {
     audioManager.master.gain.value = Math.max(0, Math.min(1, gameSettings.volume));
   }
+};
+
+const setGameActiveUi = (active) => {
+  document.body.classList.toggle("game-active", !!active);
+  if (active) {
+    void lockLandscapeForGameplay();
+  } else {
+    unlockGameplayOrientation();
+  }
+
+  if (!active) {
+    for (const keyCode of Array.from(mobileHeldKeys)) {
+      releaseMobileKey(keyCode);
+    }
+  }
+};
+
+const dispatchVirtualKey = (type, code) => {
+  window.dispatchEvent(new KeyboardEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    code,
+    key: code,
+  }));
+};
+
+const pressMobileKey = (code) => {
+  if (mobileHeldKeys.has(code)) return;
+  mobileHeldKeys.add(code);
+  dispatchVirtualKey("keydown", code);
+};
+
+const releaseMobileKey = (code) => {
+  if (!mobileHeldKeys.has(code)) return;
+  mobileHeldKeys.delete(code);
+  dispatchVirtualKey("keyup", code);
+};
+
+const tapMobileKey = (code) => {
+  dispatchVirtualKey("keydown", code);
+  setTimeout(() => dispatchVirtualKey("keyup", code), 60);
+};
+
+const bindMobileControls = () => {
+  if (mobileControlBindingsReady || !mobileControls) return;
+
+  const buttons = mobileControls.querySelectorAll("[data-mobile-key]");
+  buttons.forEach((button) => {
+    const code = button.dataset.mobileKey;
+    const mode = button.dataset.mobileMode || "hold";
+
+    const press = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.classList.add("is-pressed");
+      if (mode === "tap") {
+        tapMobileKey(code);
+      } else {
+        pressMobileKey(code);
+      }
+    };
+
+    const release = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.classList.remove("is-pressed");
+      if (mode !== "tap") {
+        releaseMobileKey(code);
+      }
+    };
+
+    button.addEventListener("pointerdown", press);
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("pointerleave", release);
+  });
+
+  mobileControlBindingsReady = true;
 };
 
 const syncOptionsUI = () => {
@@ -171,6 +296,8 @@ const showOptionsPanel = () => {
   if (configMenu) configMenu.classList.remove("visible");
   optionsPanel.classList.add("visible");
 
+  setGameActiveUi(false);
+
   audioManager.startMenuMusic();
   bindOptionsPanel();
   syncOptionsUI();
@@ -211,6 +338,7 @@ const initIntroVideo = () => {
     mainMenuOverlay.classList.add("visible");
     introVideo.pause();
     introVideo.currentTime = 0;
+    setGameActiveUi(false);
     if (introFallbackTimer) {
       clearTimeout(introFallbackTimer);
       introFallbackTimer = null;
@@ -310,6 +438,7 @@ const startIntro = () => {
 // Función para mostrar el menú principal
 const showMainMenu = () => {
   console.log("Mostrando menú principal");
+  setGameActiveUi(false);
   
   if (introManager) {
     introManager.dispose();
@@ -337,6 +466,7 @@ const showConfigMenu = () => {
     menuOverlay.style.display = "none";
     menuOverlay.classList.remove("visible");
   }
+  setGameActiveUi(false);
   
   // Mostrar el menú de configuración
   ui.setMenuVisible(true);
@@ -356,6 +486,8 @@ const showConfigMenu = () => {
 ui.onPlay((selection) => {
   audioManager.stopMenuMusic();
   ui.setMenuVisible(false); // Ocultar menú
+  setGameActiveUi(true);
+  bindMobileControls();
   if (game) game.stop();
   game = new GameManager(canvas, ui);
   game.start(selection);
@@ -379,11 +511,23 @@ ui.onBackToMenu(() => {
   ui.setRaceUIVisible(false);
   audioManager.stopMenuMusic();
   document.getElementById("mainMenu").style.display = "none";
+  setGameActiveUi(false);
   showMainMenu();
 });
 
 // Iniciar la intro de video al cargar
 window.addEventListener("load", () => {
   console.log("Página cargada, inicializando...");
+  refreshTouchUiMode();
   initIntroVideo();
 });
+
+const handleViewportChange = () => {
+  refreshTouchUiMode();
+  if (document.body.classList.contains("game-active") && isPortrait()) {
+    void lockLandscapeForGameplay();
+  }
+};
+
+window.addEventListener("resize", handleViewportChange);
+window.addEventListener("orientationchange", handleViewportChange);
