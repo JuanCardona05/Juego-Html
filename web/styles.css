@@ -1,0 +1,998 @@
+:root {
+  --bg: #f3efe0;
+  --bg2: #b3e4d4;
+  --accent: #e85d04;
+  --accent2: #0f4c5c;
+  --panel: rgba(15, 76, 92, 0.86);
+  --text: #fff9f2;
+  --ink: #1e1e24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 15%, #f9dd9b 0%, transparent 35%),
+    radial-gradient(circle at 80% 75%, #6ec6a8 0%, transparent 32%),
+    linear-gradient(145deg, var(--bg), var(--bg2));
+  font-family: "Chakra Petch", sans-serif;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  overflow-x: hidden;
+}
+
+.bg-shapes .shape {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(2px);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.bg-shapes .s1 {
+  width: 300px;
+  height: 300px;
+  background: #ffb703;
+  left: -80px;
+  top: -60px;
+}
+
+.bg-shapes .s2 {
+  width: 220px;
+  height: 220px;
+  background: #219ebc;
+  right: -80px;
+  top: 140px;
+}
+
+.bg-shapes .s3 {
+  width: 260px;
+  height: 260px;
+  background: #fb8500;
+  right: 18%;
+  bottom: -120px;
+}
+
+.title-wrap {
+  padding: 12px 22px 0;
+}
+
+h1 {
+  margin: 0;
+  font: 700 2.1rem/1 "Baloo 2", cursive;
+  color: #073b4c;
+}
+
+.title-wrap p {
+  margin: 2px 0 0;
+  color: #355070;
+  font-weight: 600;
+}
+
+.game-shell {
+  position: relative;
+  width: min(96vw, 1280px);
+  margin: 0 auto;
+  border: 6px solid #0f4c5c;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(0);
+  animation: rise 650ms ease;
+  background: #5fc0de;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#gameCanvas {
+  width: 100%;
+  height: min(72vh, 760px);
+  display: block;
+  background: linear-gradient(#6fcfff, #bff0ff 35%, #8fcc72 100%);
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.hud.visible {
+  display: block;
+}
+
+.hud-fps {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  color: #ffffff;
+  font: 700 2rem/1 "Chakra Petch", sans-serif;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.hud-position {
+  position: absolute;
+  left: 14px;
+  top: 56px;
+  color: #eaffff;
+  font: 700 1rem/1.1 "Chakra Petch", sans-serif;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+.hud-position strong {
+  font-size: 1.35rem;
+  margin-left: 6px;
+}
+
+.hud-power {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #d7f8ff;
+  font: 700 1.02rem/1.1 "Chakra Petch", sans-serif;
+  text-shadow: 0 2px 9px rgba(0, 0, 0, 0.58);
+}
+
+.hud-power strong {
+  color: #ffffff;
+}
+
+.hud-power-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(230, 246, 255, 0.65);
+  background: rgba(20, 40, 60, 0.68);
+  box-shadow: inset 0 0 10px rgba(130, 228, 255, 0.22);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.hud-power-icon::before {
+  content: "?";
+}
+
+.hud-power-icon.none::before {
+  content: "-";
+}
+
+.hud-power-icon.rocket::before {
+  content: "^";
+}
+
+.hud-power-icon.spikes::before {
+  content: "*";
+}
+
+.hud-power-icon.turbo::before {
+  content: "+";
+}
+
+.hud-power-icon.shield::before {
+  content: "O";
+}
+
+.hud-power-icon.pulse::before {
+  content: "~";
+}
+
+.hud-laps {
+  position: absolute;
+  right: 28px;
+  top: 200px;
+  color: #e9fbff;
+  font: 700 0.98rem/1.1 "Chakra Petch", sans-serif;
+  text-shadow: 0 2px 9px rgba(0, 0, 0, 0.58);
+}
+
+.hud-laps strong {
+  margin-left: 6px;
+  font-size: 1.2rem;
+}
+
+.hud-speed-wrap {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: min(260px, 44vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(11, 24, 37, 0.72);
+  border: 1px solid rgba(170, 236, 255, 0.38);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.hud-speed {
+  color: #eaffff;
+  font: 700 0.95rem/1 "Chakra Petch", sans-serif;
+  margin-bottom: 8px;
+}
+
+.hud-speed strong {
+  margin-left: 8px;
+  font-size: 1.2rem;
+}
+
+.hud-turbo-meter {
+  width: 100%;
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(127, 157, 172, 0.4);
+  border: 1px solid rgba(199, 243, 255, 0.5);
+  overflow: hidden;
+}
+
+.hud-turbo-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #31d3ff 0%, #64f7ff 50%, #f5ff9f 100%);
+  box-shadow: 0 0 8px rgba(89, 243, 255, 0.6);
+  transition: width 120ms linear;
+}
+
+.hud-turbo-label {
+  margin-top: 6px;
+  color: #d9f5ff;
+  font: 600 0.82rem/1 "Chakra Petch", sans-serif;
+}
+
+.minimap {
+  position: absolute;
+  right: 16px;
+  top: 18px;
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  border: 3px solid rgba(229, 246, 255, 0.9);
+  background: rgba(13, 25, 40, 0.65);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), inset 0 0 16px rgba(95, 196, 255, 0.3);
+  z-index: 4;
+  display: none;
+  pointer-events: none;
+}
+
+.minimap.visible {
+  display: block;
+}
+
+.race-countdown {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 120px;
+  text-align: center;
+  color: #ffffff;
+  font: 900 4.4rem/1 "Baloo 2", cursive;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.65), 0 0 22px rgba(100, 225, 255, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 7;
+  transition: opacity 180ms ease;
+}
+
+.race-countdown.visible {
+  opacity: 1;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 59, 76, 0.45);
+  z-index: 5;
+}
+
+.overlay.visible {
+  display: flex;
+}
+
+.panel {
+  width: min(460px, 90vw);
+  background: #f7f3e9;
+  color: #233d4d;
+  padding: 24px;
+  border-radius: 14px;
+  border: 4px solid #0f4c5c;
+  text-align: center;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-family: "Baloo 2", cursive;
+  font-size: 1.85rem;
+}
+
+.panel p {
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+
+.panel-menu {
+  width: min(640px, 92vw);
+  text-align: left;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.menu-grid label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.menu-grid select,
+.menu-grid input[type="color"] {
+  border: 2px solid #0f4c5c;
+  border-radius: 8px;
+  padding: 8px;
+  font: 600 0.92rem "Chakra Petch", sans-serif;
+  background: #ffffff;
+  color: #102a43;
+}
+
+.menu-help {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #355070;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+
+.preview-grid h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: #16425b;
+}
+
+.preview-grid canvas {
+  width: 100%;
+  height: 118px;
+  border: 2px solid #0f4c5c;
+  border-radius: 10px;
+  display: block;
+  background: linear-gradient(#9ddfff, #c9f2ff);
+}
+
+.finish-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font: 700 1rem "Chakra Petch", sans-serif;
+  background: linear-gradient(120deg, #ef8354, #e85d04);
+  color: #fff;
+}
+
+.controls {
+  width: min(96vw, 1280px);
+  margin: 0 auto 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(15, 76, 92, 0.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.controls h3 {
+  margin: 0;
+}
+
+.controls p {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #gameCanvas {
+    height: min(58vh, 640px);
+  }
+
+  .hud {
+    inset: 0;
+  }
+
+  .hud-fps {
+    left: 8px;
+    top: 8px;
+    font-size: 1.5rem;
+  }
+
+  .hud-position {
+    left: 8px;
+    top: 42px;
+    font-size: 0.85rem;
+  }
+
+  .hud-position strong {
+    font-size: 1.05rem;
+  }
+
+  .hud-power {
+    top: 10px;
+    font-size: 0.82rem;
+    width: 70vw;
+    text-align: center;
+  }
+
+  .hud-laps {
+    right: 10px;
+    top: 152px;
+    font-size: 0.8rem;
+  }
+
+  .hud-laps strong {
+    font-size: 1rem;
+  }
+
+  .hud-speed-wrap {
+    left: 8px;
+    bottom: 8px;
+    width: min(220px, 62vw);
+    padding: 8px 10px;
+  }
+
+  .hud-speed strong {
+    font-size: 1rem;
+  }
+
+  .minimap {
+    right: 8px;
+    top: 8px;
+    width: 136px;
+    height: 136px;
+  }
+
+  .race-countdown {
+    font-size: 3rem;
+  }
+}
+
+/* ========== MAIN MENU STYLES - ARCADE STYLE ========== */
+
+.main-menu-overlay {
+  background: linear-gradient(180deg, rgba(20, 10, 40, 0.92) 0%, rgba(40, 20, 60, 0.92) 30%, rgba(20, 10, 40, 0.92) 60%, rgba(20, 40, 60, 0.92) 100%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  backdrop-filter: blur(2px);
+}
+
+.main-menu-overlay.visible {
+  display: flex;
+}
+
+/* Efecto de escaneo arcade */
+.main-menu-overlay::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1;
+  animation: scanlines 8s linear infinite;
+}
+
+@keyframes scanlines {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(10px); }
+}
+
+.main-menu-panel {
+  text-align: center;
+  animation: arcadePopIn 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  position: relative;
+  z-index: 2;
+  background: rgba(10, 5, 25, 0.9);
+  padding: 50px 60px;
+  border: 4px solid #ff6b35;
+  border-radius: 0;
+  box-shadow: 
+    0 0 30px rgba(255, 107, 53, 0.8),
+    inset 0 0 30px rgba(255, 107, 53, 0.2),
+    0 0 50px rgba(0, 217, 255, 0.4),
+    0 0 80px rgba(0, 255, 136, 0.2);
+  min-width: 420px;
+}
+
+@keyframes arcadePopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotateX(30deg) rotateY(-10deg);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateX(0) rotateY(0);
+  }
+}
+
+.intro-screen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.intro-video-full {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.main-menu-logo {
+  margin-bottom: 35px;
+  animation: titleBounce 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #ff6b35;
+}
+
+.intro-video {
+  display: none;
+}
+
+.main-menu-logo::before {
+  content: '';
+  position: absolute;
+  left: -30px;
+  right: -30px;
+  top: -10px;
+  bottom: -15px;
+  border: 3px solid #00ff88;
+  border-radius: 0;
+  opacity: 0.6;
+  animation: arcadePulse 2s ease-in-out infinite;
+}
+
+@keyframes arcadePulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 10px rgba(0, 255, 136, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+}
+
+@keyframes titleBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.main-menu-logo h1 {
+  color: #ff6b35;
+  font-size: 3.8rem;
+  margin: 0;
+  text-shadow: 
+    2px 2px 0 #00ff88,
+    4px 4px 0 #00d9ff,
+    6px 6px 0 rgba(255, 107, 53, 0.3),
+    8px 8px 25px rgba(255, 107, 53, 0.6),
+    -2px -2px 0 rgba(0, 255, 136, 0.2);
+  letter-spacing: 3px;
+  font-weight: 900;
+  font-family: "Baloo 2", cursive;
+  position: relative;
+  z-index: 1;
+}
+
+.main-menu-logo p {
+  color: #00ff88;
+  font-size: 1.05rem;
+  margin: 12px 0 0;
+  text-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.main-menu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 25px;
+  max-width: 100%;
+}
+
+.main-menu-btn {
+  padding: 14px 32px;
+  font-size: 1.05rem;
+  background: linear-gradient(90deg, #1a0033 0%, #330055 50%, #1a0033 100%);
+  color: #00ff88;
+  border: 3px solid #00ff88;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  transition: all 150ms ease;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.5);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.main-menu-btn::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(90deg, #ff6b35, #00d9ff, #00ff88);
+  border-radius: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.main-menu-btn:hover {
+  background: linear-gradient(90deg, #ff6b35 0%, #ff9500 50%, #00ff88 100%);
+  color: #0a0a0a;
+  transform: translateY(-3px);
+  box-shadow: 
+    0 0 20px rgba(255, 107, 53, 1),
+    0 0 35px rgba(0, 255, 136, 0.8),
+    0 0 15px rgba(0, 217, 255, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  text-shadow: none;
+  border-color: #ff6b35;
+}
+
+.main-menu-btn.focused {
+  background: linear-gradient(90deg, #ff6b35 0%, #ff9500 50%, #00ff88 100%);
+  color: #0a0a0a;
+  transform: scale(1.08) translateY(-3px);
+  box-shadow: 
+    inset 0 0 15px rgba(255, 107, 53, 0.8),
+    0 0 25px rgba(255, 107, 53, 1),
+    0 0 40px rgba(0, 255, 136, 0.8),
+    0 0 20px rgba(0, 217, 255, 0.6);
+  text-shadow: none;
+  border-color: #ffff00;
+  animation: arcadeGlow 500ms ease infinite;
+}
+
+@keyframes arcadeGlow {
+  0%, 100% { 
+    box-shadow: 
+      inset 0 0 15px rgba(255, 107, 53, 0.8),
+      0 0 25px rgba(255, 107, 53, 1),
+      0 0 40px rgba(0, 255, 136, 0.8),
+      0 0 20px rgba(0, 217, 255, 0.6);
+  }
+  50% { 
+    box-shadow: 
+      inset 0 0 25px rgba(255, 107, 53, 1),
+      0 0 35px rgba(255, 107, 53, 1),
+      0 0 50px rgba(0, 255, 136, 1),
+      0 0 30px rgba(0, 217, 255, 0.8);
+  }
+}
+
+.main-menu-footer {
+  color: #00d9ff;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  animation: fadeIn 1200ms ease;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  text-shadow: 0 0 8px rgba(0, 217, 255, 0.5);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .main-menu-logo h1 {
+    font-size: 2.4rem;
+  }
+
+  .main-menu-btn {
+    padding: 11px 24px;
+    font-size: 0.95rem;
+  }
+  
+  .main-menu-panel {
+    padding: 40px 30px;
+    min-width: auto;
+    width: 90%;
+    max-width: 380px;
+  }
+}
+
+/* PANEL DE OPCIONES */
+.options-overlay {
+  background: linear-gradient(180deg, rgba(20, 10, 40, 0.95) 0%, rgba(40, 20, 60, 0.95) 50%, rgba(20, 10, 40, 0.95) 100%);
+  z-index: 110;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.options-overlay.visible {
+  display: flex;
+}
+
+.options-panel {
+  background: linear-gradient(135deg, #1a0033 0%, #330055 100%);
+  border: 4px solid #ff6b35;
+  border-radius: 4px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 
+    0 0 30px rgba(255, 107, 53, 0.6),
+    0 0 50px rgba(0, 255, 136, 0.3),
+    inset 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #00ff88;
+  padding-bottom: 15px;
+}
+
+.options-header h2 {
+  color: #00ff88;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 1.8rem;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+  letter-spacing: 2px;
+}
+
+.options-close {
+  background: none;
+  border: 2px solid #ff6b35;
+  color: #ff6b35;
+  font-size: 2rem;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 150ms ease;
+}
+
+.options-close:hover {
+  background: #ff6b35;
+  color: #0a0a0a;
+  transform: scale(1.1);
+}
+
+.options-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-group label {
+  color: #00d9ff;
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+}
+
+/* SLIDER */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff6b35, #00ff88);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00ff88;
+  cursor: pointer;
+  border: 2px solid #ff6b35;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+  transition: all 100ms ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 1);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00ff88;
+  cursor: pointer;
+  border: 2px solid #ff6b35;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+}
+
+#volumeValue {
+  color: #00ff88;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* BOTONES DE OPCIÓN */
+.option-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.option-btn {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #1a0033 0%, #330055 100%);
+  color: #00ff88;
+  border: 2px solid #00ff88;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  transition: all 150ms ease;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.option-btn:hover {
+  background: linear-gradient(90deg, #ff6b35, #ff9500);
+  color: #0a0a0a;
+  border-color: #ff6b35;
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.8);
+}
+
+.option-btn.active {
+  background: linear-gradient(90deg, #ff6b35, #ff9500);
+  color: #0a0a0a;
+  border-color: #ffff00;
+  box-shadow: 
+    inset 0 0 10px rgba(255, 107, 53, 0.6),
+    0 0 15px rgba(255, 107, 53, 0.8);
+  transform: scale(1.05);
+}
+
+/* BOTONES DE ACCIÓN */
+.options-back-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(90deg, #ff6b35, #ff9500);
+  color: #0a0a0a;
+  border: 2px solid #ffff00;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  transition: all 150ms ease;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.8);
+}
+
+.options-back-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 25px rgba(255, 107, 53, 1);
+}
+
+@media (max-width: 600px) {
+  .options-panel {
+    padding: 25px;
+  }
+
+  .options-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .option-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

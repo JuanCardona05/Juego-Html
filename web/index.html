@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AnimalKart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Baloo+2:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-shapes" aria-hidden="true">
+    <span class="shape s1"></span>
+    <span class="shape s2"></span>
+    <span class="shape s3"></span>
+  </div>
+
+  <header class="title-wrap">
+    <h1>AnimalKart</h1>
+    <p>Carrera arcade animal</p>
+  </header>
+
+  <main class="game-shell">
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+    <!-- PANTALLA DE INTRO DE VIDEO -->
+    <section id="introScreen" class="overlay intro-screen-overlay">
+      <video id="introVideo" class="intro-video-full" autoplay playsinline>
+        <source src="intro/intro.mp4" type="video/mp4">
+      </video>
+    </section>
+
+    <!-- MENÚ PRINCIPAL -->
+    <section id="mainMenuOverlay" class="overlay main-menu-overlay">
+      <div class="main-menu-panel">
+        <div class="main-menu-logo">
+          <h1>ANIMALKART</h1>
+          <p>Racing Arcade</p>
+        </div>
+        <nav class="main-menu-nav">
+          <button class="main-menu-btn" data-mode="arcade">ARCADE</button>
+          <button class="main-menu-btn" data-mode="timeTrial">TIME TRIAL</button>
+          <button class="main-menu-btn" data-mode="versus">VERSUS</button>
+          <button class="main-menu-btn" data-mode="story">STORY</button>
+          <button class="main-menu-btn" data-mode="options">OPTIONS</button>
+        </nav>
+
+        <div class="main-menu-footer">
+          Use ↑↓ Arrows + Enter or Click to Play
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL DE OPCIONES -->
+    <section id="optionsPanel" class="overlay options-overlay" style="display: none;">
+      <div class="options-panel">
+        <div class="options-header">
+          <h2>OPCIONES</h2>
+          <button class="options-close" id="closeOptionsBtn">×</button>
+        </div>
+
+        <div class="options-content">
+          <div class="option-group">
+            <label>Volumen del Juego</label>
+            <div class="slider-container">
+              <input type="range" id="volumeSlider" min="0" max="100" value="35" class="slider" />
+              <span id="volumeValue">35%</span>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <label>Límite de FPS</label>
+            <div class="option-buttons">
+              <button class="option-btn" data-fps="30">30 FPS</button>
+              <button class="option-btn active" data-fps="60">60 FPS</button>
+              <button class="option-btn" data-fps="120">120 FPS</button>
+              <button class="option-btn" data-fps="unlimited">Sin límite</button>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <label>Calidad Gráfica</label>
+            <div class="option-buttons">
+              <button class="option-btn" data-quality="low">Baja</button>
+              <button class="option-btn active" data-quality="medium">Media</button>
+              <button class="option-btn" data-quality="high">Alta</button>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <label>Pantalla</label>
+            <div class="option-buttons">
+              <button class="option-btn active" data-screen="windowed">Ventana</button>
+              <button class="option-btn" data-screen="fullscreen">Pantalla Completa</button>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <label>Sincronización Vertical (VSync)</label>
+            <div class="option-buttons">
+              <button class="option-btn active" data-vsync="on">Activado</button>
+              <button class="option-btn" data-vsync="off">Desactivado</button>
+            </div>
+          </div>
+        </div>
+
+        <button id="backFromOptionsBtn" class="options-back-btn">Volver</button>
+      </div>
+    </section>
+
+    <!-- MENÚ DE CONFIGURACIÓN -->
+    <section id="mainMenu" class="overlay">
+      <div class="panel panel-menu">
+        <h2>AnimalKart Arcade</h2>
+        <p>Configura tu piloto, kart y pista antes de iniciar.</p>
+
+        <div class="menu-grid">
+          <label>
+            Personaje
+            <select id="characterSelect">
+              <option value="cat" selected>Gato (Velocidad)</option>
+              <option value="dog">Perro (Manejo)</option>
+              <option value="falcon">Halcón (Aceleración)</option>
+              <option value="panda">Panda (Resistencia)</option>
+              <option value="monkey">Mono (Equilibrio)</option>
+              <option value="rabbit">Conejo (Agilidad)</option>
+            </select>
+          </label>
+
+          <label>
+            Vehiculo
+            <select id="vehicleSelect">
+              <option value="speedster" selected>Speedster (Rápido, Difícil)</option>
+              <option value="stable">Stable (Estable, Lento)</option>
+              <option value="offroad">Offroad (Agarre + Aceleración)</option>
+              <option value="formula">Formula (Velocidad Máxima)</option>
+              <option value="truck">Truck (Potencia + Resistencia)</option>
+              <option value="buggy">Buggy (Ligero + Ágil)</option>
+            </select>
+          </label>
+
+          <label>
+            Color del vehiculo
+            <input id="vehicleColorPicker" type="color" value="#ff4d6d" />
+          </label>
+
+          <label>
+            Pista
+            <select id="trackSelect">
+              <option value="nature" selected>Pista 1 - Naturaleza</option>
+              <option value="city">Pista 2 - Ciudad</option>
+              <option value="desert">Pista 3 - Desierto</option>
+            </select>
+          </label>
+
+          <label>
+            Dificultad IA
+            <select id="difficultySelect">
+              <option value="easy">Facil</option>
+              <option value="medium" selected>Medio</option>
+              <option value="hard">Dificil</option>
+            </select>
+          </label>
+
+          <label>
+            Vueltas
+            <select id="lapSelect">
+              <option value="1">1 Vuelta</option>
+              <option value="3" selected>3 Vueltas</option>
+              <option value="5">5 Vueltas</option>
+              <option value="infinite">Infinito</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="preview-grid">
+          <div>
+            <h4>Preview Piloto</h4>
+            <canvas id="previewCharacter" width="220" height="140"></canvas>
+          </div>
+          <div>
+            <h4>Preview Vehiculo</h4>
+            <canvas id="previewVehicle" width="220" height="140"></canvas>
+          </div>
+          <div>
+            <h4>Preview Pista</h4>
+            <canvas id="previewTrack" width="220" height="140"></canvas>
+          </div>
+        </div>
+
+        <button id="playBtn">Jugar</button>
+        <p class="menu-help">Controles: W/S acelerar-frenar, A/D girar, Espacio drift, Shift turbo de drift, E o toque de Espacio para power-up.</p>
+      </div>
+    </section>
+
+    <div id="hud" class="hud">
+      <div id="hudFps" class="hud-fps">60</div>
+      <div class="hud-position">POS <strong id="hudPosition">1 / 4</strong></div>
+      <div class="hud-power">PODER <span id="hudPowerIcon" class="hud-power-icon none" aria-hidden="true"></span><strong id="hudPowerUp">NINGUNO</strong></div>
+      <div class="hud-laps">VUELTA <strong id="hudLap">1 / 3</strong></div>
+      <div class="hud-speed-wrap">
+        <div class="hud-speed">VEL <strong id="hudSpeed">0 km/h</strong></div>
+        <div class="hud-turbo-meter">
+          <div id="hudTurboFill" class="hud-turbo-fill"></div>
+        </div>
+        <div id="hudTurboLabel" class="hud-turbo-label">Turbo 0%</div>
+      </div>
+    </div>
+
+    <canvas id="miniMap" class="minimap" width="220" height="220" aria-label="Minimapa"></canvas>
+    <div id="raceCountdown" class="race-countdown" aria-live="polite"></div>
+
+    <section id="finishScreen" class="overlay">
+      <div class="panel">
+        <h2>Carrera Terminada</h2>
+        <p id="finishText">Llegaste en posicion 1</p>
+        <div class="finish-actions">
+          <button id="restartBtn">Reiniciar</button>
+          <button id="backMenuBtn">Volver al menu</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="controls">
+    <h3>Controles</h3>
+    <p>W/S acelerar-frenar, A/D girar, Espacio drift, Shift turbo, Enter iniciar, R reiniciar,E power-up</p>
+  </section>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
