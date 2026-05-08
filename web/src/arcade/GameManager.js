@@ -13,20 +13,35 @@ export class GameManager {
     this.canvas = canvas;
     this.ui = uiManager;
     this.settings = window.AnimalKartSettings || {};
-    this.targetFpsLimit = this.settings.fpsLimit || 60;
+
+    const touchQuery = window.matchMedia?.("(pointer: coarse) and (hover: none)");
+    this.isTouchDevice = !!(touchQuery?.matches || navigator.maxTouchPoints > 0);
+    this.minFpsLimit = this.isTouchDevice ? 30 : 60;
+
+    const requestedFpsLimit = this.settings.fpsLimit;
+    if (requestedFpsLimit === "unlimited") {
+      this.targetFpsLimit = "unlimited";
+    } else {
+      const numericLimit = Number(requestedFpsLimit);
+      this.targetFpsLimit = Number.isFinite(numericLimit)
+        ? Math.max(this.minFpsLimit, numericLimit)
+        : this.minFpsLimit;
+    }
+
     this.frameIntervalMs = this.targetFpsLimit === "unlimited" ? 0 : 1000 / this.targetFpsLimit;
     this.lastFrameTick = 0;
-    this.manualQualityTier = this.settings.quality || null;
+    this.manualQualityTier = this._normalizeQualityTier(this.settings.quality);
+    this.usePostProcessing = !this.isTouchDevice;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: !this.isTouchDevice,
       powerPreference: "high-performance",
       desynchronized: this.settings.vsync === false,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.1));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.VSMShadowMap;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isTouchDevice ? 0.85 : 1.0));
+    this.renderer.shadowMap.enabled = !this.isTouchDevice;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.96;
@@ -80,8 +95,11 @@ export class GameManager {
     this.dynamicEventTimer = 0;
     this.activeTrackEvent = null;
     this.eventProps = [];
-    this.qualityTier = this.manualQualityTier || "high";
+    this.qualityTier = this.manualQualityTier || (this.isTouchDevice ? "low" : "balanced");
     this.shadowTier = this.qualityTier;
+    this.enableMiniMap = !this.isTouchDevice;
+    this.smokeEmissionFactor = this.isTouchDevice ? 0.45 : 1;
+    this.effectFrameCounter = 0;
     this.raceIntroActive = false;
     this.raceIntroTimer = 0;
     this.raceIntroDuration = 4.8;
@@ -124,6 +142,66 @@ export class GameManager {
 
     this._bindInput();
     this._bindResize();
+  }
+
+  _normalizeQualityTier(tier) {
+    if (tier === "medium") return "balanced";
+    if (tier === "low" || tier === "balanced" || tier === "high") return tier;
+    return null;
+  }
+
+  _getPixelRatioCapForTier(tier) {
+    const isLandscape = window.innerWidth > window.innerHeight;
+
+    if (this.isTouchDevice) {
+      if (isLandscape) {
+        if (tier === "low") return 0.72;
+        if (tier === "balanced") return 0.8;
+        return 0.88;
+      }
+      if (tier === "low") return 0.8;
+      if (tier === "balanced") return 0.9;
+      return 0.98;
+    }
+
+    if (tier === "low") return 0.9;
+    if (tier === "balanced") return 1.0;
+    return 1.05;
+  }
+
+  _applyQualityTier(tier, shouldResize = true) {
+    this.qualityTier = tier;
+    const pixelRatioCap = this._getPixelRatioCapForTier(tier);
+
+    if (tier === "low") {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+      this.renderer.toneMappingExposure = 0.9;
+      if (this.bloomPass) this.bloomPass.strength = 0.04;
+      if (this.sunLight && this.shadowTier !== "low") {
+        this.sunLight.shadow.mapSize.set(768, 768);
+        this.shadowTier = "low";
+      }
+    } else if (tier === "balanced") {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+      this.renderer.toneMappingExposure = 0.93;
+      if (this.bloomPass) this.bloomPass.strength = 0.08;
+      if (this.sunLight && this.shadowTier !== "balanced") {
+        this.sunLight.shadow.mapSize.set(1024, 1024);
+        this.shadowTier = "balanced";
+      }
+    } else {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+      this.renderer.toneMappingExposure = 0.96;
+      if (this.bloomPass) this.bloomPass.strength = 0.12;
+      if (this.sunLight && this.shadowTier !== "high") {
+        this.sunLight.shadow.mapSize.set(1536, 1536);
+        this.shadowTier = "high";
+      }
+    }
+
+    if (shouldResize) {
+      this._onResize();
+    }
   }
 
   _bindInput() {
@@ -189,7 +267,10 @@ export class GameManager {
 
     this._addLights(config.trackId);
     this._addSky();
-    this._setupPostProcessing();
+    if (this.usePostProcessing) {
+      this._setupPostProcessing();
+    }
+    this._applyQualityTier(this.qualityTier, false);
     this._loadHDRI(config.trackId);
 
     this.track = TrackGenerator.create(this.scene, config.trackId);
@@ -213,6 +294,12 @@ export class GameManager {
     this._initMiniMapData();
     this._enableFrustumCulling();
     this._onResize();
+
+    if (!this.enableMiniMap && this.miniMapCanvas) {
+      this.miniMapCanvas.classList.remove("visible");
+      this.miniMapCanvas.style.display = "none";
+    }
+
     this.audio.start(config.trackId);
     if (this.audio.master) {
       const volume = Number.isFinite(this.settings.volume) ? this.settings.volume : 0.45;
@@ -840,8 +927,10 @@ export class GameManager {
       return;
     }
 
-    if (outOfWorld || p.outOfBoundsTimer > 2.6 || p.stuckTimer > 4.0) {
-      this._eliminatePlayer();
+    if (outOfWorld || p.outOfBoundsTimer > 1.35 || p.stuckTimer > 2.4) {
+      this._resetRacerToTrack(p);
+      p.hitTimer = 0.35;
+      p.hazardCooldown = 0.5;
       p.outOfBoundsTimer = 0;
       p.stuckTimer = 0;
     }
@@ -1634,6 +1723,8 @@ export class GameManager {
   }
 
   _drawMiniMap() {
+    if (!this.enableMiniMap) return;
+
     const ctx = this.miniMapCtx;
     const canvas = this.miniMapCanvas;
     if (!ctx || !canvas || !this.player || !this.track) return;
@@ -1646,7 +1737,8 @@ export class GameManager {
     const radius = Math.min(w, h) * 0.5 - 6;
 
     this.miniMapTrailTimer += 1;
-    if (this.miniMapTrailTimer >= 2) {
+    const trailStep = this.isTouchDevice ? 4 : 2;
+    if (this.miniMapTrailTimer >= trailStep) {
       this.miniMapTrailTimer = 0;
       this.miniMapTrail.push(this._worldToMiniMapPoint(this.player.position));
       if (this.miniMapTrail.length > 110) this.miniMapTrail.shift();
@@ -1744,6 +1836,8 @@ export class GameManager {
     }
 
     this.lastFrameTick = now;
+    this.effectFrameCounter += 1;
+    const shouldUpdateHeavyEffects = !this.isTouchDevice || (this.effectFrameCounter % 2 === 0);
     const dt = Math.min(0.033, (now - this.lastTime) / 1000 || 0.016);
     this.lastTime = now;
 
@@ -1752,11 +1846,11 @@ export class GameManager {
         this._updateVictoryCinematic(dt);
       } else if (this.raceIntroActive) {
         this._updateRaceIntro(dt);
-        this.smoke.update(dt);
+        if (shouldUpdateHeavyEffects) this.smoke.update(dt);
         this.audio.update(this.player, dt);
       } else if (this.raceCountdownActive) {
         this._updateRaceCountdown(dt);
-        this.smoke.update(dt);
+        if (shouldUpdateHeavyEffects) this.smoke.update(dt);
         this.audio.update(this.player, dt);
       } else {
         this._updatePlayer(dt);
@@ -1780,17 +1874,17 @@ export class GameManager {
           }
         }
 
-        if (this.player.driftFactor > 0.3 && !this.player.eliminated) {
-          this.smoke.emit(this.player, 1);
+        if (shouldUpdateHeavyEffects && this.player.driftFactor > 0.3 && !this.player.eliminated) {
+          this.smoke.emit(this.player, this.smokeEmissionFactor);
         }
 
         for (const ai of this.aiControllers) {
-          if (ai.vehicle.driftFactor > 0.45 && Math.random() < 0.18) {
-            this.smoke.emit(ai.vehicle, 1);
+          if (shouldUpdateHeavyEffects && ai.vehicle.driftFactor > 0.45 && Math.random() < 0.18) {
+            this.smoke.emit(ai.vehicle, this.smokeEmissionFactor * 0.8);
           }
         }
 
-        this.smoke.update(dt);
+        if (shouldUpdateHeavyEffects) this.smoke.update(dt);
         this.audio.update(this.player, dt);
         this._updateHeadlightLOD();
 
@@ -1826,37 +1920,11 @@ export class GameManager {
       const fps = Math.round((this.framesSinceSample * 1000) / elapsed);
 
       if (!this.manualQualityTier) {
-        const nextTier = fps < 36 ? "low" : fps < 52 ? "balanced" : fps > 58 ? "high" : this.qualityTier;
+        const lowThreshold = this.isTouchDevice ? 28 : 54;
+        const highThreshold = this.isTouchDevice ? 45 : 72;
+        const nextTier = fps < lowThreshold ? "low" : fps > highThreshold ? "high" : "balanced";
         if (nextTier !== this.qualityTier) {
-          this.qualityTier = nextTier;
-
-          if (this.qualityTier === "low") {
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 0.95));
-            this.renderer.toneMappingExposure = 0.9;
-            if (this.bloomPass) this.bloomPass.strength = 0.05;
-            if (this.sunLight && this.shadowTier !== "low") {
-              this.sunLight.shadow.mapSize.set(768, 768);
-              this.shadowTier = "low";
-            }
-          } else if (this.qualityTier === "balanced") {
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.08));
-            this.renderer.toneMappingExposure = 0.92;
-            if (this.bloomPass) this.bloomPass.strength = 0.08;
-            if (this.sunLight && this.shadowTier !== "balanced") {
-              this.sunLight.shadow.mapSize.set(1024, 1024);
-              this.shadowTier = "balanced";
-            }
-          } else {
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2));
-            this.renderer.toneMappingExposure = 0.96;
-            if (this.bloomPass) this.bloomPass.strength = 0.14;
-            if (this.sunLight && this.shadowTier !== "high") {
-              this.sunLight.shadow.mapSize.set(2048, 2048);
-              this.shadowTier = "high";
-            }
-          }
-
-          this._onResize();
+          this._applyQualityTier(nextTier);
         }
       }
 
@@ -1886,6 +1954,10 @@ export class GameManager {
   _onResize() {
     const width = this.canvas.clientWidth;
     const height = this.canvas.clientHeight;
+    if (width < 2 || height < 2) return;
+
+    const pixelRatioCap = this._getPixelRatioCapForTier(this.qualityTier);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
     this.renderer.setSize(width, height, false);
 
     if (this.camera) {
@@ -1894,7 +1966,9 @@ export class GameManager {
     }
 
     if (this.composer) {
-      const scale = this.qualityTier === "low" ? 0.58 : this.qualityTier === "balanced" ? 0.7 : 0.82;
+      const baseScale = this.qualityTier === "low" ? 0.52 : this.qualityTier === "balanced" ? 0.64 : 0.74;
+      const landscapePenalty = this.isTouchDevice && width > height ? 0.08 : 0;
+      const scale = Math.max(0.46, baseScale - landscapePenalty);
       this.composer.setSize(Math.floor(width * scale), Math.floor(height * scale));
       if (this.bloomPass) this.bloomPass.resolution.set(width, height);
     }

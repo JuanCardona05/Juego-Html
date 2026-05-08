@@ -21,6 +21,7 @@ export class MenuManager {
     // Mostrar overlay del menú principal
     const menuOverlay = document.getElementById("mainMenuOverlay");
     if (menuOverlay) {
+      menuOverlay.style.display = "flex";
       menuOverlay.classList.add("visible");
       console.log("Menú overlay mostrado");
     } else {
@@ -61,6 +62,7 @@ export class MenuManager {
     const menuOverlay = document.getElementById("mainMenuOverlay");
     if (menuOverlay) {
       menuOverlay.classList.remove("visible");
+      menuOverlay.style.display = "none";
     }
     
     // Detener música de menú

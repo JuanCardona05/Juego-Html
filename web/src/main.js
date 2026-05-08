@@ -7,6 +7,7 @@ import { AudioManager } from "./arcade/AudioManager.js";
 
 const canvas = document.getElementById("gameCanvas");
 const mobileControls = document.getElementById("mobileControls");
+const fullscreenToggleBtn = document.getElementById("fullscreenToggleBtn");
 const ui = new UIManager();
 const previews = new MenuPreview();
 const audioManager = new AudioManager();
@@ -31,6 +32,14 @@ const refreshTouchUiMode = () => {
   document.body.classList.toggle("touch-device", isTouchDevice());
 };
 
+const updateViewportUnits = () => {
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const vh = viewportHeight * 0.01;
+  document.documentElement.style.setProperty("--app-vh", `${vh}px`);
+};
+
+const getMinFpsLimit = () => (isTouchDevice() ? 30 : 60);
+
 const isPortrait = () => {
   try {
     return !!window.matchMedia?.("(orientation: portrait)")?.matches;
@@ -41,11 +50,6 @@ const isPortrait = () => {
 
 const lockLandscapeForGameplay = async () => {
   if (!isTouchDevice()) return;
-
-  // Most mobile browsers only allow orientation lock in fullscreen after a user gesture.
-  if (isPortrait() && !document.fullscreenElement && typeof document.documentElement.requestFullscreen === "function") {
-    await document.documentElement.requestFullscreen().catch(() => {});
-  }
 
   if (typeof screen.orientation?.lock === "function") {
     await screen.orientation.lock("landscape").catch(() => {});
@@ -66,26 +70,33 @@ const SETTINGS_KEY = "animalKartSettings";
 const defaultSettings = {
   volume: 0.45,
   fpsLimit: 60,
-  quality: "balanced",
+  quality: "medium",
   screen: "windowed",
   vsync: true,
 };
 
 const loadSettings = () => {
+  const minFpsLimit = getMinFpsLimit();
+
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...defaultSettings };
+    if (!raw) return { ...defaultSettings, fpsLimit: minFpsLimit };
 
     const parsed = JSON.parse(raw);
+    const requestedFps = parsed.fpsLimit === "unlimited" ? "unlimited" : Number(parsed.fpsLimit);
+    const normalizedFps = requestedFps === "unlimited"
+      ? "unlimited"
+      : (Number.isFinite(requestedFps) ? Math.max(minFpsLimit, requestedFps) : minFpsLimit);
+
     return {
       volume: Number.isFinite(parsed.volume) ? Math.min(1, Math.max(0, parsed.volume)) : defaultSettings.volume,
-      fpsLimit: parsed.fpsLimit || defaultSettings.fpsLimit,
+      fpsLimit: normalizedFps,
       quality: parsed.quality || defaultSettings.quality,
       screen: parsed.screen || defaultSettings.screen,
       vsync: parsed.vsync !== false,
     };
   } catch {
-    return { ...defaultSettings };
+    return { ...defaultSettings, fpsLimit: minFpsLimit };
   }
 };
 
@@ -114,9 +125,7 @@ const applyMenuVolume = () => {
 
 const setGameActiveUi = (active) => {
   document.body.classList.toggle("game-active", !!active);
-  if (active) {
-    void lockLandscapeForGameplay();
-  } else {
+  if (!active) {
     unlockGameplayOrientation();
   }
 
@@ -126,6 +135,37 @@ const setGameActiveUi = (active) => {
     }
   }
 };
+
+const syncFullscreenButton = () => {
+  if (!fullscreenToggleBtn) return;
+  const isFs = !!document.fullscreenElement;
+  fullscreenToggleBtn.textContent = isFs ? "EXIT" : "FULL";
+  fullscreenToggleBtn.setAttribute("aria-pressed", String(isFs));
+  document.body.classList.toggle("fullscreen-mode", isFs);
+};
+
+const toggleFullscreenGameplay = async () => {
+  if (!document.fullscreenElement) {
+    await document.documentElement.requestFullscreen().catch(() => {});
+    await lockLandscapeForGameplay();
+  } else {
+    await document.exitFullscreen().catch(() => {});
+    unlockGameplayOrientation();
+  }
+  syncFullscreenButton();
+};
+
+fullscreenToggleBtn?.addEventListener("click", () => {
+  void toggleFullscreenGameplay();
+});
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    unlockGameplayOrientation();
+  }
+  syncFullscreenButton();
+  updateViewportUnits();
+});
 
 const dispatchVirtualKey = (type, code) => {
   window.dispatchEvent(new KeyboardEvent(type, {
@@ -231,7 +271,12 @@ const bindOptionsPanel = () => {
     if (!button) return;
 
     if (button.dataset.fps) {
-      gameSettings.fpsLimit = button.dataset.fps === "unlimited" ? "unlimited" : Number(button.dataset.fps);
+      const minFpsLimit = getMinFpsLimit();
+      if (button.dataset.fps === "unlimited") {
+        gameSettings.fpsLimit = "unlimited";
+      } else {
+        gameSettings.fpsLimit = Math.max(minFpsLimit, Number(button.dataset.fps));
+      }
       syncOptionsUI();
       saveSettings();
     }
@@ -294,6 +339,7 @@ const showOptionsPanel = () => {
 
   if (mainMenuOverlay) mainMenuOverlay.style.display = "none";
   if (configMenu) configMenu.classList.remove("visible");
+  optionsPanel.style.display = "flex";
   optionsPanel.classList.add("visible");
 
   setGameActiveUi(false);
@@ -306,7 +352,10 @@ const showOptionsPanel = () => {
 
 const hideOptionsPanel = () => {
   const optionsPanel = document.getElementById("optionsPanel");
-  if (optionsPanel) optionsPanel.classList.remove("visible");
+  if (optionsPanel) {
+    optionsPanel.classList.remove("visible");
+    optionsPanel.style.display = "none";
+  }
   showMainMenu();
 };
 
@@ -518,16 +567,17 @@ ui.onBackToMenu(() => {
 // Iniciar la intro de video al cargar
 window.addEventListener("load", () => {
   console.log("Página cargada, inicializando...");
+  updateViewportUnits();
   refreshTouchUiMode();
   initIntroVideo();
 });
 
 const handleViewportChange = () => {
+  updateViewportUnits();
   refreshTouchUiMode();
-  if (document.body.classList.contains("game-active") && isPortrait()) {
-    void lockLandscapeForGameplay();
-  }
 };
 
 window.addEventListener("resize", handleViewportChange);
 window.addEventListener("orientationchange", handleViewportChange);
+window.visualViewport?.addEventListener("resize", handleViewportChange);
+window.visualViewport?.addEventListener("scroll", handleViewportChange);

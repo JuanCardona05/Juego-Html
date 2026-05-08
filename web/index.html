@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AnimalKart</title>
+  <title>ChamoKart</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Baloo+2:wght@600;700&display=swap" rel="stylesheet" />
@@ -17,12 +17,13 @@
   </div>
 
   <header class="title-wrap">
-    <h1>AnimalKart</h1>
-    <p>Carrera arcade animal</p>
+    <h1>ChamoKart</h1>
+    <p>Carrera arcade de chamos</p>
   </header>
 
   <main class="game-shell">
     <canvas id="gameCanvas" width="1280" height="720"></canvas>
+    <button id="fullscreenToggleBtn" class="fullscreen-toggle" type="button" aria-label="Pantalla completa">FULL</button>
 
     <section id="mobileControls" class="mobile-controls" aria-label="Controles táctiles">
       <div class="mobile-controls-row mobile-controls-move">
@@ -43,7 +44,7 @@
     <!-- PANTALLA DE INTRO DE VIDEO -->
     <section id="introScreen" class="overlay intro-screen-overlay">
       <video id="introVideo" class="intro-video-full" autoplay playsinline>
-        <source src="intro/intro.mp4" type="video/mp4">
+        
       </video>
     </section>
 
@@ -51,8 +52,8 @@
     <section id="mainMenuOverlay" class="overlay main-menu-overlay">
       <div class="main-menu-panel">
         <div class="main-menu-logo">
-          <h1>ANIMALKART</h1>
-          <p>Racing Arcade</p>
+          <h1>CHAMOKART</h1>
+          <p>Carrera Arcade de Chamos por el poder</p>
         </div>
         <nav class="main-menu-nav">
           <button class="main-menu-btn" data-mode="arcade">ARCADE</button>
@@ -69,7 +70,7 @@
     </section>
 
     <!-- PANEL DE OPCIONES -->
-    <section id="optionsPanel" class="overlay options-overlay" style="display: none;">
+    <section id="optionsPanel" class="overlay options-overlay">
       <div class="options-panel">
         <div class="options-header">
           <h2>OPCIONES</h2>
@@ -128,31 +129,31 @@
     <!-- MENÚ DE CONFIGURACIÓN -->
     <section id="mainMenu" class="overlay">
       <div class="panel panel-menu">
-        <h2>AnimalKart Arcade</h2>
+        <h2>ChamoKart Arcade</h2>
         <p>Configura tu piloto, kart y pista antes de iniciar.</p>
 
         <div class="menu-grid">
           <label>
             Personaje
             <select id="characterSelect">
-              <option value="cat" selected>Gato (Velocidad)</option>
-              <option value="dog">Perro (Manejo)</option>
-              <option value="falcon">Halcón (Aceleración)</option>
-              <option value="panda">Panda (Resistencia)</option>
-              <option value="monkey">Mono (Equilibrio)</option>
-              <option value="rabbit">Conejo (Agilidad)</option>
+              <option value="cat" selected>Gato </option>
+              <option value="dog">Perro </option>
+              <option value="falcon">Halcón </option>
+              <option value="panda">Panda </option>
+              <option value="monkey">Mono </option>
+              <option value="rabbit">Conejo </option>
             </select>
           </label>
 
           <label>
             Vehiculo
             <select id="vehicleSelect">
-              <option value="speedster" selected>Speedster (Rápido, Difícil)</option>
-              <option value="stable">Stable (Estable, Lento)</option>
-              <option value="offroad">Offroad (Agarre + Aceleración)</option>
-              <option value="formula">Formula (Velocidad Máxima)</option>
-              <option value="truck">Truck (Potencia + Resistencia)</option>
-              <option value="buggy">Buggy (Ligero + Ágil)</option>
+              <option value="speedster" selected>La Uribestia (Rápido, Difícil)</option>
+              <option value="stable">El RappiChamo (Estable, Lento)</option>
+              <option value="offroad">MaduroKart (Agarre + Aceleración)</option>
+              <option value="formula">PetroGo (Velocidad Máxima)</option>
+              <option value="truck">DuquePig (Potencia + Resistencia)</option>
+              <option value="buggy">TurboCarlos (Ligero + Ágil)</option>
             </select>
           </label>
 
